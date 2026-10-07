@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "898394315086",
+    "project_id": "event-hub-7ff7f",
+    "storage_bucket": "event-hub-7ff7f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:898394315086:android:d6fae7a066baa1b9b9a61f",
+        "android_client_info": {
+          "package_name": "edu.bulsu.eventhub.eventhub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCY_KvHgnGJ0Znjv2uuhXh5Vj9qo0yP9cg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
