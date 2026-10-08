@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'screens/events/event_list_screen.dart';
+
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -24,7 +26,7 @@ class AuthGate extends StatelessWidget {
         final user = snapshot.data;
         return user == null
             ? const AuthScreen()
-            : SignedInScreen(email: user.email ?? '');
+            : EventListScreen(email: user.email ?? '');
       },
     );
   }
@@ -72,10 +74,7 @@ class _AuthScreenState extends State<AuthScreen> {
           password: password,
         );
       } else {
-        await auth.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
+        await auth.signInWithEmailAndPassword(email: email, password: password);
       }
     } on FirebaseAuthException catch (error) {
       setState(() {
@@ -83,10 +82,11 @@ class _AuthScreenState extends State<AuthScreen> {
           'invalid-email' => 'Enter a valid email address.',
           'email-already-in-use' => 'An account already exists for this email.',
           'weak-password' => 'Choose a stronger password.',
-          'user-not-found' || 'wrong-password' || 'invalid-credential' =>
-          'Email or password is incorrect.',
+          'user-not-found' ||
+          'wrong-password' ||
+          'invalid-credential' => 'Email or password is incorrect.',
           'network-request-failed' =>
-          'Check your internet connection and try again.',
+            'Check your internet connection and try again.',
           _ => 'Unable to sign in right now. Please try again.',
         };
       });
@@ -115,10 +115,7 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  action,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
+                Text(action, style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _emailController,
@@ -173,9 +170,9 @@ class _AuthScreenState extends State<AuthScreen> {
                   onPressed: _isLoading
                       ? null
                       : () => setState(() {
-                    _isRegistering = !_isRegistering;
-                    _errorMessage = null;
-                  }),
+                          _isRegistering = !_isRegistering;
+                          _errorMessage = null;
+                        }),
                   child: Text(
                     _isRegistering
                         ? 'Already registered? Log in'
