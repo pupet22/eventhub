@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/event.dart';
 import '../../repositories/event_repository.dart';
 import '../../widgets/event_card.dart';
+import 'event_history_screen.dart';
 import 'my_events_screen.dart';
 
 class EventListScreen extends StatefulWidget {
@@ -70,6 +71,17 @@ class _EventListScreenState extends State<EventListScreen> {
             icon: const Icon(Icons.event_available),
           ),
           IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const EventHistoryScreen(),
+                ),
+              );
+            },
+            tooltip: 'Event History',
+            icon: const Icon(Icons.history),
+          ),
+          IconButton(
             onPressed: _signOut,
             tooltip: 'Log out',
             icon: const Icon(Icons.logout),
@@ -87,7 +99,7 @@ class _EventListScreenState extends State<EventListScreen> {
           if (snapshot.hasError) {
             return _MessageState(
               message:
-                  'Unable to load events. Check your connection and try again.',
+              'Unable to load events. Check your connection and try again.',
               buttonLabel: 'Retry',
               onPressed: () {
                 setState(_loadEvents);
@@ -106,12 +118,12 @@ class _EventListScreenState extends State<EventListScreen> {
           final visibleEvents = _selectedCategory == 'All'
               ? events
               : events
-                    .where(
-                      (event) =>
-                          event.category.toLowerCase() ==
-                          _selectedCategory.toLowerCase(),
-                    )
-                    .toList();
+              .where(
+                (event) =>
+            event.category.toLowerCase() ==
+                _selectedCategory.toLowerCase(),
+          )
+              .toList();
 
           return Column(
             children: [
@@ -144,14 +156,16 @@ class _EventListScreenState extends State<EventListScreen> {
               ),
               Expanded(
                 child: visibleEvents.isEmpty
-                    ? Center(child: Text('No $_selectedCategory events found.'))
+                    ? Center(
+                  child: Text('No $_selectedCategory events found.'),
+                )
                     : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: visibleEvents.length,
-                        itemBuilder: (context, index) {
-                          return EventCard(event: visibleEvents[index]);
-                        },
-                      ),
+                  padding: const EdgeInsets.all(16),
+                  itemCount: visibleEvents.length,
+                  itemBuilder: (context, index) {
+                    return EventCard(event: visibleEvents[index]);
+                  },
+                ),
               ),
             ],
           );
@@ -183,7 +197,10 @@ class _MessageState extends StatelessWidget {
             Text(message, textAlign: TextAlign.center),
             if (buttonLabel != null && onPressed != null) ...[
               const SizedBox(height: 12),
-              FilledButton(onPressed: onPressed, child: Text(buttonLabel!)),
+              FilledButton(
+                onPressed: onPressed,
+                child: Text(buttonLabel!),
+              ),
             ],
           ],
         ),
