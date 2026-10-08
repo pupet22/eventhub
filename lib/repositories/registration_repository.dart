@@ -6,11 +6,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/event.dart';
 
 class RegistrationRepository {
-  RegistrationRepository({
-    FirebaseFirestore? firestore,
-    FirebaseAuth? auth,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+  RegistrationRepository({FirebaseFirestore? firestore, FirebaseAuth? auth})
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance;
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -19,9 +17,10 @@ class RegistrationRepository {
     final user = _auth.currentUser;
     if (user == null) return Stream<bool>.value(false);
 
-    return _registrationRef(user.uid, eventId)
-        .snapshots()
-        .map((document) => document.exists);
+    return _registrationRef(
+      user.uid,
+      eventId,
+    ).snapshots().map((document) => document.exists);
   }
 
   Stream<List<Event>> watchMyEvents() {
@@ -36,7 +35,7 @@ class RegistrationRepository {
     return registrations.snapshots().asyncMap((snapshot) async {
       final eventDocuments = await Future.wait(
         snapshot.docs.map(
-              (registration) =>
+          (registration) =>
               _firestore.collection('events').doc(registration.id).get(),
         ),
       );
@@ -91,10 +90,19 @@ class RegistrationRepository {
     });
   }
 
+  Future<void> cancelRegistration(String eventId) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw StateError('Please log in to cancel your registration.');
+    }
+
+    await _registrationRef(user.uid, eventId).delete();
+  }
+
   DocumentReference<Map<String, dynamic>> _registrationRef(
-      String userId,
-      String eventId,
-      ) {
+    String userId,
+    String eventId,
+  ) {
     return _firestore
         .collection('users')
         .doc(userId)

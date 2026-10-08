@@ -16,7 +16,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   final _registrationRepository = RegistrationRepository();
 
   late Stream<bool> _registrationStatus;
-  bool _isRegistering = false;
+  bool _isWorking = false;
 
   @override
   void initState() {
@@ -27,15 +27,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _register() async {
-    setState(() => _isRegistering = true);
+    setState(() => _isWorking = true);
 
     try {
       await _registrationRepository.registerForEvent(widget.event.id);
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Registration successful.')));
+      _showMessage('Registration successful.');
     } on StateError catch (error) {
       if (!mounted) return;
       _showMessage(error.message.toString());
@@ -43,7 +41,50 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       if (!mounted) return;
       _showMessage('Unable to register. Check your connection and try again.');
     } finally {
-      if (mounted) setState(() => _isRegistering = false);
+      if (mounted) setState(() => _isWorking = false);
+    }
+  }
+
+  Future<void> _cancelRegistration() async {
+    final shouldCancel = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Cancel registration?'),
+          content: const Text(
+            'You will be removed from My Events for this event.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Keep registration'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Cancel registration'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldCancel != true) return;
+
+    setState(() => _isWorking = true);
+
+    try {
+      await _registrationRepository.cancelRegistration(widget.event.id);
+      if (!mounted) return;
+
+      _showMessage('Registration cancelled.');
+    } on StateError catch (error) {
+      if (!mounted) return;
+      _showMessage(error.message.toString());
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('Unable to cancel. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isWorking = false);
     }
   }
 
@@ -92,7 +133,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   const SizedBox(height: 8),
                   Text(event.description),
                   const SizedBox(height: 24),
-                  _registrationButton(context),
+                  _registrationButton(),
                 ],
               ),
             ),
@@ -102,7 +143,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     );
   }
 
-  Widget _registrationButton(BuildContext context) {
+  Widget _registrationButton() {
+    if (_isWorking) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return StreamBuilder<bool>(
       stream: _registrationStatus,
       builder: (context, snapshot) {
@@ -115,9 +160,16 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         }
 
         if (snapshot.data == true) {
-          return const SizedBox(
-            width: double.infinity,
-            child: FilledButton(onPressed: null, child: Text('Registered')),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('You are registered for this event.'),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: _cancelRegistration,
+                child: const Text('Cancel registration'),
+              ),
+            ],
           );
         }
 
@@ -128,14 +180,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         return SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: _isRegistering ? null : _register,
-            child: _isRegistering
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Register'),
+            onPressed: _register,
+            child: const Text('Register'),
           ),
         );
       },
