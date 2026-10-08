@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/event.dart';
+import '../screens/events/event_details_screen.dart';
 
 class EventCard extends StatelessWidget {
   const EventCard({super.key, required this.event});
@@ -15,31 +16,41 @@ class EventCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _image(context),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    event.name,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(event.category),
-                  const SizedBox(height: 8),
-                  Text('$date · $time'),
-                  const SizedBox(height: 4),
-                  Text(event.location),
-                ],
-              ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (context) => EventDetailsScreen(event: event),
             ),
-          ],
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _image(context),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(event.category),
+                    const SizedBox(height: 8),
+                    Text('$date · $time'),
+                    const SizedBox(height: 4),
+                    Text(event.location),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
