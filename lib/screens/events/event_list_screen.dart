@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/event.dart';
 import '../../repositories/event_repository.dart';
 import '../../widgets/event_card.dart';
+import 'my_events_screen.dart';
 
 class EventListScreen extends StatefulWidget {
   const EventListScreen({super.key, required this.email});
@@ -57,6 +58,17 @@ class _EventListScreenState extends State<EventListScreen> {
       appBar: AppBar(
         title: const Text('Events'),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const MyEventsScreen(),
+                ),
+              );
+            },
+            tooltip: 'My Events',
+            icon: const Icon(Icons.event_available),
+          ),
           IconButton(
             onPressed: _signOut,
             tooltip: 'Log out',

@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../models/event.dart';
+
 class RegistrationRepository {
-  RegistrationRepository({FirebaseFirestore? firestore, FirebaseAuth? auth})
-    : _firestore = firestore ?? FirebaseFirestore.instance,
-      _auth = auth ?? FirebaseAuth.instance;
+  RegistrationRepository({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -15,10 +19,36 @@ class RegistrationRepository {
     final user = _auth.currentUser;
     if (user == null) return Stream<bool>.value(false);
 
-    return _registrationRef(
-      user.uid,
-      eventId,
-    ).snapshots().map((document) => document.exists);
+    return _registrationRef(user.uid, eventId)
+        .snapshots()
+        .map((document) => document.exists);
+  }
+
+  Stream<List<Event>> watchMyEvents() {
+    final user = _auth.currentUser;
+    if (user == null) return Stream<List<Event>>.value(<Event>[]);
+
+    final registrations = _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('registrations');
+
+    return registrations.snapshots().asyncMap((snapshot) async {
+      final eventDocuments = await Future.wait(
+        snapshot.docs.map(
+              (registration) =>
+              _firestore.collection('events').doc(registration.id).get(),
+        ),
+      );
+
+      final events = eventDocuments
+          .where((document) => document.exists)
+          .map(Event.fromDocument)
+          .toList();
+
+      events.sort((a, b) => a.startsAt.compareTo(b.startsAt));
+      return events;
+    });
   }
 
   Future<void> registerForEvent(String eventId) async {
@@ -62,9 +92,9 @@ class RegistrationRepository {
   }
 
   DocumentReference<Map<String, dynamic>> _registrationRef(
-    String userId,
-    String eventId,
-  ) {
+      String userId,
+      String eventId,
+      ) {
     return _firestore
         .collection('users')
         .doc(userId)
