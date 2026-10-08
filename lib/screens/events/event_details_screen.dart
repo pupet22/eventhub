@@ -1,14 +1,60 @@
 import 'package:flutter/material.dart';
 
 import '../../models/event.dart';
+import '../../repositories/registration_repository.dart';
 
-class EventDetailsScreen extends StatelessWidget {
+class EventDetailsScreen extends StatefulWidget {
   const EventDetailsScreen({super.key, required this.event});
 
   final Event event;
 
   @override
+  State<EventDetailsScreen> createState() => _EventDetailsScreenState();
+}
+
+class _EventDetailsScreenState extends State<EventDetailsScreen> {
+  final _registrationRepository = RegistrationRepository();
+
+  late Stream<bool> _registrationStatus;
+  bool _isRegistering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _registrationStatus = _registrationRepository.watchRegistration(
+      widget.event.id,
+    );
+  }
+
+  Future<void> _register() async {
+    setState(() => _isRegistering = true);
+
+    try {
+      await _registrationRepository.registerForEvent(widget.event.id);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Registration successful.')));
+    } on StateError catch (error) {
+      if (!mounted) return;
+      _showMessage(error.message.toString());
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('Unable to register. Check your connection and try again.');
+    } finally {
+      if (mounted) setState(() => _isRegistering = false);
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final event = widget.event;
     final date = MaterialLocalizations.of(context)
         .formatMediumDate(event.startsAt);
     final time = TimeOfDay.fromDateTime(event.startsAt).format(context);
@@ -45,12 +91,54 @@ class EventDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(event.description),
+                  const SizedBox(height: 24),
+                  _registrationButton(context),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _registrationButton(BuildContext context) {
+    return StreamBuilder<bool>(
+      stream: _registrationStatus,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return const Text('Unable to check your registration status.');
+        }
+
+        if (snapshot.data == true) {
+          return const SizedBox(
+            width: double.infinity,
+            child: FilledButton(onPressed: null, child: Text('Registered')),
+          );
+        }
+
+        if (!widget.event.startsAt.isAfter(DateTime.now())) {
+          return const Text('This event has started. Registration is closed.');
+        }
+
+        return SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _isRegistering ? null : _register,
+            child: _isRegistering
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Register'),
+          ),
+        );
+      },
     );
   }
 
@@ -62,10 +150,10 @@ class EventDetailsScreen extends StatelessWidget {
       child: const Icon(Icons.event, size: 64),
     );
 
-    if (event.imageUrl.trim().isEmpty) return placeholder;
+    if (widget.event.imageUrl.trim().isEmpty) return placeholder;
 
     return Image.network(
-      event.imageUrl,
+      widget.event.imageUrl,
       height: 220,
       width: double.infinity,
       fit: BoxFit.cover,
