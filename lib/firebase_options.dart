@@ -57,6 +57,7 @@ class DefaultFirebaseOptions {
     appId: '1:898394315086:android:d6fae7a066baa1b9b9a61f',
     messagingSenderId: '898394315086',
     projectId: 'event-hub-7ff7f',
+    databaseURL: 'https://event-hub-7ff7f-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'event-hub-7ff7f.firebasestorage.app',
   );
 }
