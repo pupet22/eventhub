@@ -15,8 +15,19 @@ class EventListScreen extends StatefulWidget {
 }
 
 class _EventListScreenState extends State<EventListScreen> {
-  final _repository = EventRepository();
+  static const List<String> _categories = [
+    'All',
+    'Academic',
+    'Sports',
+    'Seminars',
+    'Organization',
+    'Entertainment',
+  ];
+
+  final EventRepository _repository = EventRepository();
+
   late Stream<List<Event>> _events;
+  String _selectedCategory = 'All';
 
   @override
   void initState() {
@@ -33,6 +44,7 @@ class _EventListScreenState extends State<EventListScreen> {
       await FirebaseAuth.instance.signOut();
     } catch (_) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not log out. Please try again.')),
       );
@@ -72,18 +84,64 @@ class _EventListScreenState extends State<EventListScreen> {
           }
 
           final events = snapshot.data ?? const <Event>[];
+
           if (events.isEmpty) {
             return const _MessageState(
               message: 'There are no events to show yet.',
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: events.length,
-            itemBuilder: (context, index) {
-              return EventCard(event: events[index]);
-            },
+          final visibleEvents = _selectedCategory == 'All'
+              ? events
+              : events
+                    .where(
+                      (event) =>
+                          event.category.toLowerCase() ==
+                          _selectedCategory.toLowerCase(),
+                    )
+                    .toList();
+
+          return Column(
+            children: [
+              SizedBox(
+                height: 56,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  itemCount: _categories.length,
+                  separatorBuilder: (context, index) {
+                    return const SizedBox(width: 8);
+                  },
+                  itemBuilder: (context, index) {
+                    final category = _categories[index];
+
+                    return FilterChip(
+                      label: Text(category),
+                      selected: _selectedCategory == category,
+                      onSelected: (_) {
+                        setState(() {
+                          _selectedCategory = category;
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+              Expanded(
+                child: visibleEvents.isEmpty
+                    ? Center(child: Text('No $_selectedCategory events found.'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: visibleEvents.length,
+                        itemBuilder: (context, index) {
+                          return EventCard(event: visibleEvents[index]);
+                        },
+                      ),
+              ),
+            ],
           );
         },
       ),
