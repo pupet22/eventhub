@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -33,8 +34,14 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _loadReminderStatus() async {
+    if (kIsWeb) {
+      _isCheckingReminder = false;
+      return;
+    }
+
     try {
-      final hasReminder = await ReminderNotificationService.isReminderScheduled(
+      final hasReminder =
+      await ReminderNotificationService.isReminderScheduled(
         widget.event.id,
       );
 
@@ -52,7 +59,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _toggleReminder() async {
-    if (_isReminderWorking) return;
+    if (kIsWeb || _isReminderWorking) return;
 
     setState(() => _isReminderWorking = true);
 
@@ -64,9 +71,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         setState(() => _hasReminder = false);
         _showMessage('Event reminder cancelled.');
       } else {
-        final scheduled = await ReminderNotificationService.scheduleReminder(
-          widget.event,
-        );
+        final scheduled =
+        await ReminderNotificationService.scheduleReminder(widget.event);
 
         if (!mounted) return;
 
@@ -168,11 +174,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     try {
       await _registrationRepository.cancelRegistration(widget.event.id);
 
-      try {
-        await ReminderNotificationService.cancelReminder(widget.event.id);
-      } catch (_) {
-        // Registration cancellation should succeed even if reminder removal
-        // fails on the device.
+      if (!kIsWeb) {
+        try {
+          await ReminderNotificationService.cancelReminder(widget.event.id);
+        } catch (_) {
+          // Keep registration cancellation successful if reminder removal
+          // fails on the device.
+        }
       }
 
       if (!mounted) return;
@@ -198,8 +206,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final event = widget.event;
-    final date = MaterialLocalizations.of(context)
-        .formatMediumDate(event.startsAt);
+    final date =
+    MaterialLocalizations.of(context).formatMediumDate(event.startsAt);
     final time = TimeOfDay.fromDateTime(event.startsAt).format(context);
 
     return Scaffold(
@@ -221,7 +229,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   const SizedBox(height: 12),
                   Chip(label: Text(event.category)),
                   const SizedBox(height: 12),
-                  _InfoRow(icon: Icons.calendar_today, text: '$date at $time'),
+                  _InfoRow(
+                    icon: Icons.calendar_today,
+                    text: '$date at $time',
+                  ),
                   const SizedBox(height: 8),
                   _InfoRow(
                     icon: Icons.location_on_outlined,
@@ -273,7 +284,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             children: [
               const Text('You are registered for this event.'),
               const SizedBox(height: 12),
-              if (_isCheckingReminder || _isReminderWorking)
+              if (kIsWeb)
+                Text(
+                  'Event reminders are available in the Android app.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                )
+              else if (_isCheckingReminder || _isReminderWorking)
                 const Center(child: CircularProgressIndicator())
               else
                 OutlinedButton.icon(
@@ -284,7 +300,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                         : Icons.notifications_none,
                   ),
                   label: Text(
-                    _hasReminder ? 'Cancel reminder' : 'Remind me 1 day before',
+                    _hasReminder
+                        ? 'Cancel reminder'
+                        : 'Remind me 1 day before',
                   ),
                 ),
               const SizedBox(height: 8),
