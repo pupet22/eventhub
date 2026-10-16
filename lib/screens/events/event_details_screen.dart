@@ -203,12 +203,33 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  String _eventDateAndTime(Event event, BuildContext context) {
+    final localizations = MaterialLocalizations.of(context);
+    final startDate = localizations.formatMediumDate(event.startsAt);
+    final startTime =
+    TimeOfDay.fromDateTime(event.startsAt).format(context);
+
+    final endsAt = event.endsAt;
+    if (endsAt == null) {
+      return '$startDate at $startTime';
+    }
+
+    final endTime = TimeOfDay.fromDateTime(endsAt).format(context);
+    final sameDay = event.startsAt.year == endsAt.year &&
+        event.startsAt.month == endsAt.month &&
+        event.startsAt.day == endsAt.day;
+
+    if (sameDay) {
+      return '$startDate · $startTime – $endTime';
+    }
+
+    final endDate = localizations.formatMediumDate(endsAt);
+    return '$startDate $startTime – $endDate $endTime';
+  }
+
   @override
   Widget build(BuildContext context) {
     final event = widget.event;
-    final date =
-    MaterialLocalizations.of(context).formatMediumDate(event.startsAt);
-    final time = TimeOfDay.fromDateTime(event.startsAt).format(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Event details')),
@@ -231,7 +252,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   const SizedBox(height: 12),
                   _InfoRow(
                     icon: Icons.calendar_today,
-                    text: '$date at $time',
+                    text: _eventDateAndTime(event, context),
                   ),
                   const SizedBox(height: 8),
                   _InfoRow(
