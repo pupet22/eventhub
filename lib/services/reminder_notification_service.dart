@@ -1,9 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as timezone_data;
 import 'package:timezone/timezone.dart' as timezone;
 
 import '../models/event.dart';
+import 'reminder_web_store_stub.dart'
+    if (dart.library.html) 'reminder_web_store_web.dart'
+    as web_store;
 
 class ReminderNotificationService {
   ReminderNotificationService._();
@@ -17,6 +21,7 @@ class ReminderNotificationService {
       'Reminders for events you are registered for.';
 
   static Future<void> initialize() async {
+    if (kIsWeb) return;
     timezone_data.initializeTimeZones();
 
     try {
@@ -46,6 +51,8 @@ class ReminderNotificationService {
   }
 
   static Future<bool> isReminderScheduled(String eventId) async {
+    if (kIsWeb) return web_store.isEnabled(eventId);
+
     final pendingNotifications = await _notifications
         .pendingNotificationRequests();
 
@@ -56,10 +63,15 @@ class ReminderNotificationService {
   static Future<bool> scheduleReminder(Event event) async {
     final reminderDate = event.startsAt.subtract(const Duration(days: 1));
 
-    if (!reminderDate.isAfter(DateTime.now())) {
+    if (!kIsWeb && !reminderDate.isAfter(DateTime.now())) {
       throw StateError(
         'This event is less than one day away, so a 1-day reminder cannot be set.',
       );
+    }
+
+    if (kIsWeb) {
+      web_store.enable(event.id);
+      return true;
     }
 
     final androidNotifications = _notifications
@@ -96,6 +108,11 @@ class ReminderNotificationService {
   }
 
   static Future<void> cancelReminder(String eventId) async {
+    if (kIsWeb) {
+      web_store.disable(eventId);
+      return;
+    }
+
     await _notifications.cancel(id: _notificationId(eventId));
   }
 }

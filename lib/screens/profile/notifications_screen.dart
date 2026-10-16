@@ -39,12 +39,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         backgroundColor: _cream,
         title: const Text('Notifications'),
       ),
-      body: kIsWeb
-          ? const _MessageState(
-        message:
-        'Event reminders are available in the EventHub Android app.',
-      )
-          : StreamBuilder<List<Event>>(
+      body: StreamBuilder<List<Event>>(
         stream: _events,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
@@ -57,23 +52,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (snapshot.hasError) {
             return _MessageState(
               message:
-              'Unable to load your registered events. Please try again.',
+                  'Unable to load your registered events. Please try again.',
               buttonLabel: 'Retry',
               onPressed: () => setState(_loadEvents),
             );
           }
 
           final now = DateTime.now();
-          final upcomingEvents =
-          (snapshot.data ?? const <Event>[]).where((event) {
+          final upcomingEvents = (snapshot.data ?? const <Event>[]).where((
+            event,
+          ) {
             return (event.endsAt ?? event.startsAt).isAfter(now);
-          }).toList()
-            ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+          }).toList()..sort((a, b) => a.startsAt.compareTo(b.startsAt));
 
           if (upcomingEvents.isEmpty) {
             return const _MessageState(
-              message:
-              'You have no upcoming registered events to set reminders for.',
+              message: 'You have no upcoming registered events to set reminders for.',
             );
           }
 
@@ -83,14 +77,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               const Padding(
                 padding: EdgeInsets.fromLTRB(4, 0, 4, 16),
                 child: Text(
-                  'Manage reminders for your registered events. '
-                      'Reminders are scheduled one day before each event.',
+                  kIsWeb
+                      ? 'Demo reminders are saved in this browser. They do not send a real notification.'
+                      : 'Manage reminders for your registered events. Reminders are scheduled one day before each event.',
                   style: TextStyle(color: _mutedText),
                 ),
               ),
-              ...upcomingEvents.map(
-                    (event) => _ReminderTile(event: event),
-              ),
+              ...upcomingEvents.map((event) => _ReminderTile(event: event)),
             ],
           );
         },
@@ -121,8 +114,7 @@ class _ReminderTileState extends State<_ReminderTile> {
 
   Future<void> _loadReminderStatus() async {
     try {
-      final isEnabled =
-      await ReminderNotificationService.isReminderScheduled(
+      final isEnabled = await ReminderNotificationService.isReminderScheduled(
         widget.event.id,
       );
 
@@ -144,8 +136,9 @@ class _ReminderTileState extends State<_ReminderTile> {
 
     try {
       if (enable) {
-        final scheduled =
-        await ReminderNotificationService.scheduleReminder(widget.event);
+        final scheduled = await ReminderNotificationService.scheduleReminder(
+          widget.event,
+        );
 
         if (!mounted) return;
 
@@ -155,14 +148,20 @@ class _ReminderTileState extends State<_ReminderTile> {
           );
         } else {
           setState(() => _isEnabled = true);
-          _showMessage('Reminder set for ${widget.event.name}.');
+          _showMessage(
+            kIsWeb
+                ? 'Demo reminder enabled for this browser.'
+                : 'Reminder set for ' + widget.event.name + '.',
+          );
         }
       } else {
         await ReminderNotificationService.cancelReminder(widget.event.id);
 
         if (!mounted) return;
         setState(() => _isEnabled = false);
-        _showMessage('Reminder cancelled.');
+        _showMessage(
+          kIsWeb ? 'Demo reminder disabled.' : 'Reminder cancelled.',
+        );
       }
     } on StateError catch (error) {
       if (!mounted) return;
@@ -183,14 +182,15 @@ class _ReminderTileState extends State<_ReminderTile> {
   String _dateAndTime(BuildContext context) {
     final localizations = MaterialLocalizations.of(context);
     final date = localizations.formatMediumDate(widget.event.startsAt);
-    final startTime =
-    TimeOfDay.fromDateTime(widget.event.startsAt).format(context);
+    final startTime = TimeOfDay.fromDateTime(widget.event.startsAt)
+        .format(context);
     final endsAt = widget.event.endsAt;
 
     if (endsAt == null) return '$date · $startTime';
 
     final endTime = TimeOfDay.fromDateTime(endsAt).format(context);
-    final sameDay = widget.event.startsAt.year == endsAt.year &&
+    final sameDay =
+        widget.event.startsAt.year == endsAt.year &&
         widget.event.startsAt.month == endsAt.month &&
         widget.event.startsAt.day == endsAt.day;
 
@@ -211,20 +211,17 @@ class _ReminderTileState extends State<_ReminderTile> {
         activeThumbColor: _orange,
         secondary: _isWorking
             ? const SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: _orange,
-          ),
-        )
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: _orange,
+                ),
+              )
             : const Icon(Icons.notifications_outlined, color: _orange),
         title: Text(
           widget.event.name,
-          style: const TextStyle(
-            color: _darkText,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(color: _darkText, fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
           '${_dateAndTime(context)}\n${widget.event.location}',
@@ -262,10 +259,7 @@ class _MessageState extends StatelessWidget {
             ),
             if (buttonLabel != null && onPressed != null) ...[
               const SizedBox(height: 12),
-              FilledButton(
-                onPressed: onPressed,
-                child: Text(buttonLabel!),
-              ),
+              FilledButton(onPressed: onPressed, child: Text(buttonLabel!)),
             ],
           ],
         ),

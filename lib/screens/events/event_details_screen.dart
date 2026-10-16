@@ -34,14 +34,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _loadReminderStatus() async {
-    if (kIsWeb) {
-      _isCheckingReminder = false;
-      return;
-    }
-
     try {
-      final hasReminder =
-      await ReminderNotificationService.isReminderScheduled(
+      final hasReminder = await ReminderNotificationService.isReminderScheduled(
         widget.event.id,
       );
 
@@ -59,7 +53,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _toggleReminder() async {
-    if (kIsWeb || _isReminderWorking) return;
+    if (_isReminderWorking) return;
 
     setState(() => _isReminderWorking = true);
 
@@ -69,10 +63,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
         if (!mounted) return;
         setState(() => _hasReminder = false);
-        _showMessage('Event reminder cancelled.');
+        _showMessage(
+          kIsWeb ? 'Demo reminder disabled.' : 'Event reminder cancelled.',
+        );
       } else {
-        final scheduled =
-        await ReminderNotificationService.scheduleReminder(widget.event);
+        final scheduled = await ReminderNotificationService.scheduleReminder(
+          widget.event,
+        );
 
         if (!mounted) return;
 
@@ -82,7 +79,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           );
         } else {
           setState(() => _hasReminder = true);
-          _showMessage('Reminder set for one day before the event.');
+          _showMessage(
+            kIsWeb
+                ? 'Demo reminder enabled for this browser.'
+                : 'Reminder set for one day before the event.',
+          );
         }
       }
     } on StateError catch (error) {
@@ -174,13 +175,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     try {
       await _registrationRepository.cancelRegistration(widget.event.id);
 
-      if (!kIsWeb) {
-        try {
-          await ReminderNotificationService.cancelReminder(widget.event.id);
-        } catch (_) {
-          // Keep registration cancellation successful if reminder removal
-          // fails on the device.
-        }
+      try {
+        await ReminderNotificationService.cancelReminder(widget.event.id);
+      } catch (_) {
+        // Keep registration cancellation successful if reminder removal fails.
       }
 
       if (!mounted) return;
@@ -206,8 +204,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   String _eventDateAndTime(Event event, BuildContext context) {
     final localizations = MaterialLocalizations.of(context);
     final startDate = localizations.formatMediumDate(event.startsAt);
-    final startTime =
-    TimeOfDay.fromDateTime(event.startsAt).format(context);
+    final startTime = TimeOfDay.fromDateTime(event.startsAt).format(context);
 
     final endsAt = event.endsAt;
     if (endsAt == null) {
@@ -215,7 +212,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     }
 
     final endTime = TimeOfDay.fromDateTime(endsAt).format(context);
-    final sameDay = event.startsAt.year == endsAt.year &&
+    final sameDay =
+        event.startsAt.year == endsAt.year &&
         event.startsAt.month == endsAt.month &&
         event.startsAt.day == endsAt.day;
 
@@ -305,12 +303,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             children: [
               const Text('You are registered for this event.'),
               const SizedBox(height: 12),
-              if (kIsWeb)
-                Text(
-                  'Event reminders are available in the Android app.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                )
-              else if (_isCheckingReminder || _isReminderWorking)
+              if (_isCheckingReminder || _isReminderWorking)
                 const Center(child: CircularProgressIndicator())
               else
                 OutlinedButton.icon(
@@ -322,8 +315,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   ),
                   label: Text(
                     _hasReminder
-                        ? 'Cancel reminder'
-                        : 'Remind me 1 day before',
+                        ? (kIsWeb ? 'Disable demo reminder' : 'Cancel reminder')
+                        : (kIsWeb
+                              ? 'Try reminder (demo)'
+                              : 'Remind me 1 day before'),
                   ),
                 ),
               const SizedBox(height: 8),
